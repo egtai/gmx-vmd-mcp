@@ -1,0 +1,45 @@
+{
+  "vmd": {
+    // Path to VMD executable. Modify this according to your VMD installation
+    "path": "/Applications/VMD.app/Contents/MacOS/startup.command",
+    
+    // Directories where the service will search for structure files
+    "search_paths": [
+      "/path/to/your/structures",
+      "/another/search/path"
+    ]
+  },
+  
+  "gmx": {
+    // Path to GROMACS executable. Leave empty to use the one in your PATH environment variable
+    "path": "",
+    
+    // Default parameters for GROMACS simulations
+    "default_params": {
+      "temperature": 310,  // Kelvin
+      "pressure": 1.0,     // bar
+      "timestep": 0.002,   // ps
+      "nsteps": 50000      // number of simulation steps
+    }
+  },
+  
+  "workspace": {
+    // Default directory where workflow files will be stored
+    "default_dir": "/path/to/workspace",
+    
+    // Maximum size for workflow directories in megabytes
+    "max_size_mb": 1000
+  },
+  
+  "server": {
+    // Server host and port
+    "host": "localhost",
+    "port": 8000,
+    
+    // Log level (DEBUG, INFO, WARNING, ERROR)
+    "log_level": "INFO",
+    
+    // Enable extended debugging information
+    "debug": false
+  }
+} 
