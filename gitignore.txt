@@ -1,0 +1,65 @@
+# Python virtual environment
+venv/
+env/
+ENV/
+
+# Python bytecode
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Distribution / packaging
+dist/
+build/
+*.egg-info/
+
+# Testing and development
+test_*.py
+*.log
+*.bak*
+*.bak
+*.old
+simple_*.py
+mini_server.py
+
+# Test outputs
+vmd_tcl_test_outputs/
+*.png
+
+# Configuration files that may contain sensitive information
+config.json
+
+# System files
+.DS_Store
+Thumbs.db
+
+# Temporary files
+temp/
+tmp/
+*.tmp
+
+# IDE specific files
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# 排除UUID工作流目录
+1b6381ef-fd4b-4b0a-bc3e-81b7b6b5e35e/
+1c8eb5d3-3671-4503-877d-c3fe8c429e04/
+1f2cf7b0-2463-418b-9cfb-c7445023a71d/
+3d2f9894-b7f8-4ad4-bb02-26b63cb6bfea/
+3f69fe1e-ced4-457b-95d1-7951ca7f0563/
+5f4c332a-a1d4-4e68-98ee-a2ab69b4ba67/
+6a6658bc-96c2-47af-90e5-f112d3856e35/
+6f773b1d-12e3-4d70-bf33-5d73f46707b/
+07edc50b-0c30-4279-9363-f9d4b9e1ee93/
+19e90f67-e208-4cc4-9427-aa32e7b426ff/
+25ca2242-cfec-406f-bfc5-afedbe17a8b3/
+38d065a1-3946-454d-9147-147f188ea51c/
+89e76e59-fb00-40fb-9c94-fa0a139378b/
+212e1fcf-6d83-410b-a850-8f6beeaaded9/
+
+# 排除所有UUID工作流目录
+*-*-*-*-*/
+workflows/*-*-*-*-*/
