@@ -25,17 +25,20 @@ MCP-GMX-VMD is a service that integrates GROMACS molecular dynamics simulations 
    git clone https://github.com/yourusername/mcp-gmx-vmd.git
    cd mcp-gmx-vmd
    ```
+
 2. Create and activate a virtual environment:
 
    ```bash
    python -m venv venv
    source venv/bin/activate  # On Windows: venv\Scripts\activate
    ```
+
 3. Install dependencies:
 
    ```bash
    pip install -r requirements.txt
    ```
+
 4. Install the package (development mode):
 
    ```bash
@@ -151,13 +154,12 @@ This service can be integrated with LLM assistants like Claude or used with Curs
 ```
 
 2. Save the configuration file to the appropriate location:
-
    - **For Claude Desktop**: Save as `claude_desktop_config.json` in:
      `~/Library/Application Support/Claude/claude_desktop_config.json`
    - **For Cursor IDE**: Save as `mcp.json` in:
      `~/.cursor/mcp.json`
-3. Restart your application (Claude Desktop or Cursor)
 
+3. Restart your application (Claude Desktop or Cursor)
    - For Claude Desktop, you should now see GMX-VMD as an available integration
    - For Cursor, the integration will be available after restart
 
