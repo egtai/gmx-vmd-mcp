@@ -219,6 +219,9 @@ chmod -R 755 /path/to/your/custom/directory
 
 [MIT License](LICENSE)
 
+## YouTube Overview
+[![IMAGE ALT TEXT HERE](https://img.youtube.com/vi/ShQnOVxsrBA/0.jpg)](https://www.youtube.com/watch?v=ShQnOVxsrBA)
+
 ## Acknowledgments
 
 - VMD is developed by the Theoretical and Computational Biophysics Group at the University of Illinois at Urbana-Champaign
