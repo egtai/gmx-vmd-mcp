@@ -119,6 +119,59 @@ response = requests.get(
 )
 ```
 
+## LLM Integration
+
+This service can be integrated with LLM assistants like Claude or used with Cursor IDE for a more interactive experience. The integration allows you to perform molecular simulations and analysis directly through natural language commands.
+
+### Connect to the MCP Server
+
+1. Copy the below JSON and replace the path placeholders with your actual system paths:
+
+```json
+{
+  "mcpServers": {
+    "gmx_vmd": {
+      "command": "{{PATH_TO_UV}}",
+      "args": [
+        "--directory",
+        "{PATH_TO_SRC}/mcp-gmx-vmd",
+        "run",
+        "mcp",
+        "run",
+        "mcp_server.py"
+      ],
+      "env": {
+        "PYTHONPATH": "{PATH_TO_SRC}/mcp-gmx-vmd",
+        "MCP_DEBUG": "1",
+        "PYTHONUNBUFFERED": "1"
+      }
+    }
+  }
+}
+```
+
+2. Save the configuration file to the appropriate location:
+
+   - **For Claude Desktop**: Save as `claude_desktop_config.json` in:
+     `~/Library/Application Support/Claude/claude_desktop_config.json`
+   - **For Cursor IDE**: Save as `mcp.json` in:
+     `~/.cursor/mcp.json`
+3. Restart your application (Claude Desktop or Cursor)
+
+   - For Claude Desktop, you should now see GMX-VMD as an available integration
+   - For Cursor, the integration will be available after restart
+
+### Using MCP-GMX-VMD with LLMs
+
+Once configured, you can interact with the MCP-GMX-VMD service through natural language:
+
+- "Set up a protein simulation in water environment"
+- "Analyze the RMSD of my protein trajectory"
+- "Visualize this protein structure showing secondary structure"
+- "Calculate hydrogen bonds in my MD trajectory"
+
+The LLM will translate your requests into appropriate API calls to the MCP-GMX-VMD service.
+
 ## Advanced Configuration
 
 ### Custom Workflow Directories
