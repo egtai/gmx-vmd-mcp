@@ -226,4 +226,4 @@ chmod -R 755 /path/to/your/custom/directory
 
 - VMD is developed by the Theoretical and Computational Biophysics Group at the University of Illinois at Urbana-Champaign
 - GROMACS is a versatile package for molecular dynamics simulation
-- MCP (Microservice Communication Protocol) provides the underlying communication framework
+- MCP (Model Context Protocol ) provides the underlying communication framework
