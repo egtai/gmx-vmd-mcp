@@ -8,7 +8,7 @@ MCP-GMX-VMD is a service that integrates GROMACS molecular dynamics simulations 
 - **Trajectory Analysis**: Analyze simulation trajectories (RMSD, RMSF, etc.)
 - **3D Visualization**: Visualize molecular structures and simulation trajectories using VMD
 - **Custom Workflow Directories**: Create and manage simulation workflows in user-specified directories
-- **Modular Architecture**: Built on MCP (Microservice Communication Protocol) for flexible integration with other tools
+- **Modular Architecture**: Built on MCP (Model Context Protocol ) for flexible integration with other tools
 
 ## Prerequisites
 
