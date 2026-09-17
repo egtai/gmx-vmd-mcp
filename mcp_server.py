@@ -1162,72 +1162,9 @@ async def launch_vmd_gui_tool(structure_file: Optional[str] = None, trajectory_f
             "error": f"轨迹文件不存在: {trajectory_file}"
         }
     
-    # 如果同时提供了结构文件和轨迹文件，使用系统命令直接启动VMD
-    if structure_file and trajectory_file:
-        try:
-            # 构建命令 - 在macOS上保证在后台运行
-            if sys.platform == 'darwin':
-                # 在macOS上使用VMD启动脚本的完整路径
-                struct_abs_path = os.path.abspath(structure_file)
-                traj_abs_path = os.path.abspath(trajectory_file)
-                
-                # 使用os.system直接运行shell命令
-                # 这更接近于在终端手动输入命令的行为
-                cmd = f"vmd {struct_abs_path} {traj_abs_path} &"
-                logger.info(f"使用os.system直接启动VMD: {cmd}")
-                
-                # 使用os.system直接运行命令而不是通过asyncio
-                os.system(cmd)
-                
-                # 由于我们使用了os.system，我们无法获取进程ID
-                # 但这种方式更接近于终端手动输入，更可能成功
-                process_id = None
-                
-                # 不等待进程完成，让它在后台运行
-                logger.info(f"VMD GUI已启动，加载结构文件{structure_file}和轨迹文件{trajectory_file}")
-                
-                return {
-                    "success": True,
-                    "pid": process_id,
-                    "display": os.environ.get("DISPLAY", ":0"),
-                    "message": "VMD图形界面已成功启动，并加载了结构和轨迹文件",
-                    "structure_file": structure_file,
-                    "trajectory_file": trajectory_file
-                }
-            else:
-                # 在其他系统上也使用系统命令
-                struct_abs_path = os.path.abspath(structure_file)
-                traj_abs_path = os.path.abspath(trajectory_file)
-                
-                # 构建命令
-                cmd = f"vmd {struct_abs_path} {traj_abs_path} &"
-                logger.info(f"使用系统命令启动VMD: {cmd}")
-                
-                # 使用系统命令运行VMD
-                os.system(cmd)
-                
-                # 不等待进程完成，让它在后台运行
-                logger.info(f"VMD GUI已启动，加载结构文件{structure_file}和轨迹文件{trajectory_file}")
-                
-                return {
-                    "success": True,
-                    "pid": None,
-                    "display": os.environ.get("DISPLAY", ":0"),
-                    "message": "VMD图形界面已成功启动，并加载了结构和轨迹文件",
-                    "structure_file": structure_file,
-                    "trajectory_file": trajectory_file
-                }
-            
-        except Exception as e:
-            error_msg = str(e)
-            logger.error(f"启动VMD时发生异常: {error_msg}")
-            return {
-                "success": False,
-                "error": f"启动VMD时发生异常: {error_msg}"
-            }
-    
-    # 如果只提供了结构文件或没有提供任何文件，使用原有方法
-    return await service.vmd_manager.launch_gui(structure_file)
+    # 统一交给 VMDManager 处理：Windows 使用参数向量直接启动，
+    # 不再依赖 os.system 的 "&" 后台语法（该语法在 Windows 上无效）
+    return await service.vmd_manager.launch_gui(structure_file, trajectory_file)
 
 @mcp.tool("执行VMD TCL脚本")
 async def execute_vmd_script_tool(
