@@ -8,8 +8,29 @@ import logging
 from datetime import datetime
 import sys
 import random
+import locale
 
 logger = logging.getLogger(__name__)
+
+
+def _decode(data: Optional[bytes]) -> str:
+    """容错解码子进程输出。
+
+    Windows 上 VMD 等子进程可能按系统代码页（如 GBK）输出文本，
+    直接调用 bytes.decode() 会抛 UnicodeDecodeError。这里先尝试 UTF-8，
+    失败后再按本地首选编码解码，并始终使用 errors="replace"，
+    保证 GBK 等非法字节永远不会抛异常。
+    """
+    if not data:
+        return ""
+    for encoding in ("utf-8", locale.getpreferredencoding(False)):
+        if not encoding:
+            continue
+        try:
+            return data.decode(encoding)
+        except (UnicodeDecodeError, LookupError):
+            continue
+    return data.decode("utf-8", errors="replace")
 
 class VMDScriptResult:
     """VMD脚本执行结果"""
@@ -40,11 +61,13 @@ class VMDManager:
         # 设置VMD可执行文件路径，如果未提供则尝试使用默认的'vmd'命令
         self.vmd_path = vmd_path or "vmd"
         
-    async def launch_gui(self, structure_file: Optional[str] = None) -> Dict:
+    async def launch_gui(self, structure_file: Optional[str] = None,
+                         trajectory_file: Optional[str] = None) -> Dict:
         """启动VMD图形界面
         
         Args:
             structure_file: 可选的初始加载分子文件
+            trajectory_file: 可选的初始加载轨迹文件
             
         Returns:
             Dict: 包含进程ID和启动状态的字典
@@ -54,9 +77,10 @@ class VMDManager:
             try:
                 # 创建启动命令
                 cmd = ['open', '-a', 'VMD']
-                if structure_file:
+                files = [str(f) for f in (structure_file, trajectory_file) if f]
+                if files:
                     # 添加文件
-                    cmd.extend(['--args', str(structure_file)])
+                    cmd.extend(['--args'] + files)
                     
                 logger.info(f"在macOS上启动VMD GUI: {' '.join(cmd)}")
                 
@@ -70,10 +94,10 @@ class VMDManager:
                 stdout, stderr = await process.communicate()
                 
                 if process.returncode != 0:
-                    logger.error(f"VMD启动失败: {stderr.decode()}")
+                    logger.error(f"VMD启动失败: {_decode(stderr)}")
                     return {
                         "success": False,
-                        "error": f"启动VMD GUI失败: {stderr.decode()}"
+                        "error": f"启动VMD GUI失败: {_decode(stderr)}"
                     }
                 
                 # 等待VMD启动
@@ -94,7 +118,7 @@ class VMDManager:
                     pid = random.randint(10000, 99999)  
                 else:
                     # 获取最后一个VMD进程ID
-                    pids = stdout.decode().strip().split('\n')
+                    pids = _decode(stdout).strip().split('\n')
                     if pids:
                         pid = int(pids[-1])
                     else:
@@ -103,7 +127,7 @@ class VMDManager:
                         logger.warning(f"无法获取真实VMD进程ID，使用虚拟ID: {pid}")
                 
                 # 创建实例
-                display = os.environ.get("DISPLAY", ":0")
+                display = os.environ.get("DISPLAY")
                 instance = VMDInstance(pid, display, None)
                 self.instances[pid] = instance
                 
@@ -112,6 +136,7 @@ class VMDManager:
                 return {
                     "success": True,
                     "pid": pid,
+                    "platform": sys.platform,
                     "display": display,
                     "message": "VMD图形界面已成功启动",
                     "note": "在macOS上，进程ID可能是虚拟的"
@@ -125,53 +150,55 @@ class VMDManager:
                     "message": "启动VMD图形界面失败"
                 }
         else:
-            # 对于非macOS系统，使用原有方法
+            # Windows/Linux：以参数向量直接启动 VMD，不经过 shell/终端，也不依赖 X11 显示。
+            # 子进程 stdio 重定向到 DEVNULL，避免污染 MCP 的 stdio 传输通道。
             cmd = [self.vmd_path]
             if structure_file:
                 cmd.append(str(structure_file))
+            if trajectory_file:
+                cmd.append(str(trajectory_file))
                 
             try:
-                # 设置显示环境变量
-                env = os.environ.copy()
+                logger.info(f"启动VMD GUI: {' '.join(cmd)}")
                 
-                logger.info(f"启动VMD命令: {' '.join(cmd)}")
-                
-                # 在非终端模式下启动VMD
-                process = await asyncio.create_subprocess_exec(
-                    *cmd,
-                    stdout=asyncio.subprocess.PIPE,
-                    stderr=asyncio.subprocess.PIPE,
-                    env=env
+                process = subprocess.Popen(
+                    cmd,
+                    stdin=subprocess.DEVNULL,
+                    stdout=subprocess.DEVNULL,
+                    stderr=subprocess.DEVNULL
                 )
                 
-                # 获取进程PID
+                # 获取真实进程PID
                 pid = process.pid
-                display = env.get("DISPLAY", ":0")
+                
+                # 等待片刻后检查进程是否仍然存活
+                await asyncio.sleep(2)
+                exit_code = process.poll()
+                if exit_code is not None:
+                    logger.error(f"VMD进程启动后立即退出，退出码: {exit_code}")
+                    return {
+                        "success": False,
+                        "pid": pid,
+                        "platform": sys.platform,
+                        "error": f"VMD进程启动后立即退出，退出码: {exit_code}"
+                    }
+                
+                display = os.environ.get("DISPLAY")
                 
                 # 创建实例
                 instance = VMDInstance(pid, display, process)
                 self.instances[pid] = instance
                 
-                # 等待片刻确保VMD启动
-                await asyncio.sleep(1)
-                
-                logger.info(f"启动VMD图形界面: pid={pid}, display={display}")
-                
-                # 检查进程是否仍在运行
-                if process.returncode is not None:
-                    logger.error(f"VMD进程已退出，退出码: {process.returncode}")
-                    stderr_data = await process.stderr.read()
-                    return {
-                        "success": False,
-                        "pid": pid,
-                        "error": stderr_data.decode()
-                    }
+                logger.info(f"启动VMD图形界面: pid={pid}, platform={sys.platform}")
                 
                 return {
                     "success": True,
                     "pid": pid,
+                    "platform": sys.platform,
                     "display": display,
-                    "message": "VMD图形界面已成功启动"
+                    "message": "VMD图形界面已成功启动",
+                    "structure_file": structure_file,
+                    "trajectory_file": trajectory_file
                 }
                 
             except Exception as e:
@@ -210,12 +237,15 @@ class VMDManager:
             
         if generate_image:
             # 添加图像渲染命令
+            # 花括号保护路径：Tcl 会把未加保护的反斜杠当作转义序列，
+            # 从而破坏 Windows 路径；render 的第三个参数是渲染后命令，
+            # 因此必须去掉多余的 %s，只保留 "render <method> <file>"。
             image_path = Path(image_file).absolute()
             render_commands = f"""
             display update
             display update ui
-            render TachyonInternal {image_path} %s
-            puts "IMAGE_SAVED:{image_path}"
+            render TachyonInternal {{{image_path}}}
+            puts {{IMAGE_SAVED:{image_path}}}
             """
             script = script + render_commands
             
@@ -264,14 +294,14 @@ class VMDManager:
                             timeout=timeout
                         )
                         
-                        stdout_str = stdout.decode()
-                        stderr_str = stderr.decode()
+                        stdout_str = _decode(stdout)
+                        stderr_str = _decode(stderr)
                         
                         # 提取图像路径（如果有）
                         image_path = None
                         for line in stdout_str.split('\n'):
                             if line.startswith("IMAGE_SAVED:"):
-                                image_path = line.split(':')[1].strip()
+                                image_path = line.split("IMAGE_SAVED:", 1)[1].strip()
                         
                         result = {
                             "success": process.returncode == 0,
@@ -313,14 +343,14 @@ class VMDManager:
                         timeout=timeout
                     )
                     
-                    stdout_str = stdout.decode()
-                    stderr_str = stderr.decode()
+                    stdout_str = _decode(stdout)
+                    stderr_str = _decode(stderr)
                     
                     # 提取图像路径（如果有）
                     image_path = None
                     for line in stdout_str.split('\n'):
                         if line.startswith("IMAGE_SAVED:"):
-                            image_path = line.split(':')[1].strip()
+                            image_path = line.split("IMAGE_SAVED:", 1)[1].strip()
                     
                     result = {
                         "success": process.returncode == 0,
@@ -356,14 +386,14 @@ class VMDManager:
                         timeout=timeout
                     )
                     
-                    stdout_str = stdout.decode()
-                    stderr_str = stderr.decode()
+                    stdout_str = _decode(stdout)
+                    stderr_str = _decode(stderr)
                     
                     # 提取图像路径（如果有）
                     image_path = None
                     for line in stdout_str.split('\n'):
                         if line.startswith("IMAGE_SAVED:"):
-                            image_path = line.split(':')[1].strip()
+                            image_path = line.split("IMAGE_SAVED:", 1)[1].strip()
                     
                     result = {
                         "success": process.returncode == 0,
